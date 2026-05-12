@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COSMOS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#c8a250;--gold-l:#e8d5a3;--gold-d:#8a6a30;
+  --panel:rgba(8,6,1,0.78);--border:rgba(200,162,80,0.18);
+}
+body{background:#000;color:var(--gold-l);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
+#bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
+#app{position:relative;z-index:1;min-height:100vh;}
+
+/* HEADER */
+header{padding:20px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.5);backdrop-filter:blur(12px);position:sticky;top:0;z-index:10;}
+.logo{font-family:'Orbitron',sans-serif;font-size:26px;font-weight:900;letter-spacing:10px;color:var(--gold-l);text-shadow:0 0 24px rgba(200,162,80,0.55),0 0 60px rgba(200,162,80,0.2);}
+.tagline{font-size:10px;letter-spacing:4px;color:var(--gold-d);text-transform:uppercase;margin-top:4px;}
+#dateDisp{font-size:11px;letter-spacing:2px;color:var(--gold-d);text-align:right;}
+
+/* NAV */
+nav{display:flex;padding:0 40px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.35);backdrop-filter:blur(6px);}
+.tab{padding:14px 28px;cursor:pointer;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--gold-d);border-bottom:2px solid transparent;transition:all .3s;font-family:'Orbitron',sans-serif;}
+.tab.active{color:var(--gold-l);border-bottom-color:var(--gold);}
+.tab:hover:not(.active){color:var(--gold);}
+
+/* MAIN */
+main{padding:36px 40px;max-width:1140px;margin:0 auto;}
+section{display:none;}
+section.active{display:block;}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+.sec-title{font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:5px;color:var(--gold);text-transform:uppercase;}
+
+/* FETCH BUTTON */
+.fetch-btn{background:transparent;border:1px solid var(--gold);color:var(--gold-l);padding:10px 22px;font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:3px;cursor:pointer;transition:all .3s;text-transform:uppercase;position:relative;overflow:hidden;}
+.fetch-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(200,162,80,0.12),transparent);transform:translateX(-100%);transition:transform .5s;}
+.fetch-btn:hover::before{transform:translateX(100%);}
+.fetch-btn:hover{box-shadow:0 0 18px rgba(200,162,80,0.35);}
+.fetch-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* LOADING */
+.loading{display:none;text-align:center;padding:60px;color:var(--gold-d);}
+.loading.show{display:block;}
+.spin{display:inline-block;font-size:24px;animation:spin 1.4s linear infinite;margin-bottom:14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load-txt{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:4px;}
+
+/* NEWS */
+.news-list{display:flex;flex-direction:column;gap:14px;}
+.news-card{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--gold);padding:20px 24px;backdrop-filter:blur(10px);transition:all .3s;}
+.news-card:hover{background:rgba(18,13,2,0.9);transform:translateX(5px);box-shadow:0 0 20px rgba(200,162,80,0.08);}
+.news-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:9px;}
+.news-date{font-size:11px;color:var(--gold);letter-spacing:2px;font-family:'Orbitron',sans-serif;}
+.news-src{font-size:10px;color:var(--gold-d);border:1px solid var(--gold-d);padding:2px 8px;letter-spacing:1px;}
+.news-cat{font-size:10px;color:#8ab4d4;background:rgba(100,160,210,0.08);border:1px solid rgba(100,160,210,0.28);padding:2px 8px;}
+.news-title{font-size:15px;font-weight:500;color:var(--gold-l);margin-bottom:8px;line-height:1.55;}
+.news-sum{font-size:12.5px;color:rgba(232,213,163,0.58);line-height:1.75;}
+
+/* ERROR */
+.err-msg{background:rgba(200,80,80,0.08);border:1px solid rgba(200,80,80,0.28);color:#d48d8d;padding:14px 18px;font-size:12px;margin-bottom:18px;display:none;}
+.err-msg.show{display:block;}
+
+/* EMPTY */
+.empty{text-align:center;padding:70px 40px;color:var(--gold-d);}
+.empty-icon{font-size:44px;margin-bottom:18px;opacity:.45;}
+.empty-txt{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;line-height:2;}
+
+/* THEORIES */
+.theories-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;}
+.t-card{background:var(--panel);border:1px solid var(--border);padding:22px;backdrop-filter:blur(10px);transition:all .3s;position:relative;overflow:hidden;}
+.t-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .3s;}
+.t-card:hover::after{opacity:1;}
+.t-card:hover{background:rgba(18,13,2,0.92);transform:translateY(-3px);box-shadow:0 6px 30px rgba(200,162,80,0.1);}
+.t-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:10px;}
+.t-name{font-size:16px;font-weight:700;color:var(--gold-l);}
+.t-en{font-size:10px;color:var(--gold-d);margin-top:4px;letter-spacing:1px;}
+.badges{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;}
+.badge{font-size:9px;padding:3px 8px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+.b-cat{border:1px solid rgba(100,160,210,0.35);color:#8ab4d4;}
+.b-정설{border:1px solid rgba(100,210,100,0.35);color:#8dd48d;}
+.b-유력{border:1px solid rgba(200,162,80,0.35);color:var(--gold);}
+.b-가설{border:1px solid rgba(210,140,80,0.35);color:#d4a88d;}
+.b-논쟁{border:1px solid rgba(180,100,210,0.35);color:#c08dd4;}
+.t-desc{font-size:12px;color:rgba(232,213,163,0.62);line-height:1.82;margin-bottom:14px;}
+.t-tip{font-size:11px;padding:10px 14px;background:rgba(200,162,80,0.05);border-left:2px solid var(--gold-d);color:var(--gold);line-height:1.65;}
+.t-tip-lbl{font-size:9px;letter-spacing:2px;color:var(--gold-d);margin-bottom:4px;text-transform:uppercase;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:#000;}
+::-webkit-scrollbar-thumb{background:var(--gold-d);}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="app">
+  <header>
+    <div>
+      <div class="logo">COSMOS</div>
+      <div class="tagline">우주를 탐험하는 콘텐츠 허브</div>
+    </div>
+    <div id="dateDisp"></div>
+  </header>
+  <nav>
+    <div class="tab active" onclick="switchTab('news')">📡 최신 뉴스</div>
+    <div class="tab" onclick="switchTab('theories')">🔭 우주 이론</div>
+  </nav>
+  <main>
+    <!-- NEWS -->
+    <section id="news" class="active">
+      <div class="sec-hdr">
+        <div class="sec-title">Space News · 최신 업데이트</div>
+        <button class="fetch-btn" id="fetchBtn" onclick="fetchNews()">🛸 뉴스 업데이트</button>
+      </div>
+      <div class="err-msg" id="errMsg"></div>
+      <div class="loading" id="loading">
+        <div class="spin">✦</div>
+        <div class="load-txt">우주의 신호를 수신 중...</div>
+      </div>
+      <div class="news-list" id="newsList">
+        <div class="empty">
+          <div class="empty-icon">🌌</div>
+          <div class="empty-txt">상단의 뉴스 업데이트 버튼을 눌러<br>최신 우주 뉴스를 불러오세요</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- THEORIES -->
+    <section id="theories">
+      <div class="sec-hdr">
+        <div class="sec-title">우주 이론 & 가설 아카이브</div>
+        <div style="font-size:11px;color:var(--gold-d);letter-spacing:2px;">15개 이론 수록</div>
+      </div>
+      <div class="theories-grid" id="theoriesGrid"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+// ===== SATURN BACKGROUND =====
+function drawBg() {
+  const c = document.getElementById('bg');
+  c.width = window.innerWidth; c.height = window.innerHeight;
+  const ctx = c.getContext('2d'), W = c.width, H = c.height;
+
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+
+  // Stars
+  for(let i=0;i<280;i++){
+    const x=Math.random()*W, y=Math.random()*H, r=Math.random()*1.1+0.1;
+    const op=Math.random()*0.55+0.08;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=\`rgba(255,248,225,\${op})\`; ctx.fill();
+  }
+
+  // Planet center (upper-right, partly offscreen)
+  const pcx=W*0.87, pcy=H*0.03;
+
+  // Planet glow
+  const pg=ctx.createRadialGradient(pcx,pcy,0,pcx,pcy,Math.min(W,H)*0.62);
+  pg.addColorStop(0,'rgba(255,248,220,0.98)');
+  pg.addColorStop(0.06,'rgba(230,195,115,0.88)');
+  pg.addColorStop(0.14,'rgba(200,158,72,0.65)');
+  pg.addColorStop(0.28,'rgba(145,108,38,0.38)');
+  pg.addColorStop(0.46,'rgba(80,56,14,0.16)');
+  pg.addColorStop(0.68,'rgba(30,20,4,0.05)');
+  pg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=pg; ctx.fillRect(0,0,W,H);
+
+  // Rings
+  ctx.save(); ctx.translate(pcx,pcy); ctx.rotate(-0.2);
+  const rings=[
+    [W*.42,W*.044,'rgba(110,85,38,',0.35,0.5],
+    [W*.46,W*.048,'rgba(145,115,52,',0.48,1.1],
+    [W*.50,W*.052,'rgba(185,150,68,',0.65,2.3],
+    [W*.535,W*.056,'rgba(158,128,58,',0.52,0.9],
+    [W*.565,W*.059,'rgba(172,140,66,',0.60,1.7],
+    [W*.595,W*.062,'rgba(142,115,54,',0.44,0.8],
+    [W*.625,W*.066,'rgba(155,125,60,',0.52,1.2],
+    [W*.66,W*.070,'rgba(128,102,48,',0.34,0.7],
+    [W*.70,W*.074,'rgba(110,88,42,',0.28,0.55],
+    [W*.745,W*.079,'rgba(90,72,34,',0.20,0.45],
+    [W*.79,W*.084,'rgba(74,58,28,',0.14,0.38],
+  ];
+  for(const [rx,ry,col,op,lw] of rings){
+    ctx.beginPath(); ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);
+    ctx.strokeStyle=col+op+')'; ctx.lineWidth=lw; ctx.stroke();
+  }
+  ctx.restore();
+
+  // Shadow gradient (darkens left/outer)
+  const sg=ctx.createRadialGradient(pcx,pcy,W*0.08,pcx,pcy,Math.max(W,H)*0.9);
+  sg.addColorStop(0,'rgba(0,0,0,0)');
+  sg.addColorStop(0.45,'rgba(0,0,0,0.12)');
+  sg.addColorStop(0.75,'rgba(0,0,0,0.42)');
+  sg.addColorStop(1,'rgba(0,0,0,0.72)');
+  ctx.fillStyle=sg; ctx.fillRect(0,0,W,H);
+
+  // Left side planet shadow
+  const ls=ctx.createLinearGradient(0,0,W*0.55,0);
+  ls.addColorStop(0,'rgba(0,0,0,0.48)');
+  ls.addColorStop(0.5,'rgba(0,0,0,0.18)');
+  ls.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=ls; ctx.fillRect(0,0,W,H);
+}
+window.addEventListener('resize',drawBg); drawBg();
+
+// ===== DATE =====
+const today=new Date();
+document.getElementById('dateDisp').textContent=
+  today.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+
+// ===== TABS =====
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active',(i===0&&tab==='news')||(i===1&&tab==='theories'));
+  });
+  document.getElementById('news').classList.toggle('active',tab==='news');
+  document.getElementById('theories').classList.toggle('active',tab==='theories');
+}
+
+// ===== NEWS =====
+async function fetchNews(){
+  const btn=document.getElementById('fetchBtn');
+  const loading=document.getElementById('loading');
+  const list=document.getElementById('newsList');
+  const err=document.getElementById('errMsg');
+  btn.disabled=true; loading.classList.add('show');
+  list.innerHTML=''; err.classList.remove('show');
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:3000,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:\`당신은 우주 뉴스 전문 큐레이터입니다. 웹 검색으로 최신 우주 뉴스를 찾고, 반드시 순수 JSON 배열만 반환하세요. 마크다운 블록 없이 JSON만 반환합니다.
+형식:
+[{"title":"한국어 제목","date":"YYYY-MM-DD","source":"출처","category":"탐사|천문학|우주기술|발사체|외계생명|블랙홀|태양계|위성 중 1","summary":"120자 내외 한국어 요약"}]\`,
+        messages:[{role:'user',content:\`오늘 날짜: \${today.toISOString().split('T')[0]}. NASA, SpaceX, ESA, JAXA 등 최신 우주 뉴스·우주기술 뉴스 8개를 웹 검색으로 찾아 JSON만 반환하세요.\`}]
+      })
+    });
+    const data=await res.json();
+    let text='';
+    for(const b of data.content) if(b.type==='text') text+=b.text;
+    const clean=text.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    const s=clean.indexOf('['), e=clean.lastIndexOf(']');
+    const news=JSON.parse(clean.slice(s,e+1));
+    renderNews(news);
+  }catch(e){
+    err.textContent='신호 수신 오류: '+e.message; err.classList.add('show');
+    list.innerHTML=\`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-txt">신호 수신 실패<br>잠시 후 다시 시도해주세요</div></div>\`;
+  }finally{
+    loading.classList.remove('show'); btn.disabled=false;
+  }
+}
+
+function renderNews(news){
+  const list=document.getElementById('newsList');
+  if(!news.length){list.innerHTML=\`<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">수신된 뉴스 없음</div></div>\`;return;}
+  list.innerHTML=news.map(n=>\`
+    <div class="news-card">
+      <div class="news-meta">
+        <span class="news-date">\${n.date||'날짜 미상'}</span>
+        \${n.source?\`<span class="news-src">\${n.source}</span>\`:''}
+        \${n.category?\`<span class="news-cat">\${n.category}</span>\`:''}
+      </div>
+      <div class="news-title">\${n.title}</div>
+      <div class="news-sum">\${n.summary}</div>
+    </div>\`).join('');
+}
+
+// ===== THEORIES =====
+const theories=[
+  {name:"빅뱅 이론",en:"Big Bang Theory",cat:"우주론",st:"정설",
+   desc:"우주는 약 138억 년 전 극도로 뜨겁고 밀도 높은 특이점에서 시작되어 급격히 팽창했다는 이론. 우주배경복사(CMB), 허블의 적색편이, 원소 비율이 핵심 증거다.",
+   tip:"빅뱅의 순간부터 현재까지 타임라인 / CMB가 우연히 발견된 이야기"},
+  {name:"급팽창 이론",en:"Cosmic Inflation",cat:"우주론",st:"유력",
+   desc:"빅뱅 직후 10⁻³⁶초 내에 우주가 빛보다 빠르게 기하급수적으로 팽창했다는 이론. 우주의 평탄성·균일성 문제를 해결하며, 알란 구스가 1980년 제안했다.",
+   tip:"왜 우주는 이렇게 균일한가? / 인플레이션이 해결하는 3가지 수수께끼"},
+  {name:"암흑 물질",en:"Dark Matter",cat:"천체물리학",st:"유력",
+   desc:"우주 전체 질량의 약 27%를 차지하지만 빛을 방출·흡수하지 않아 직접 관측할 수 없는 물질. 은하 회전 곡선과 중력 렌즈 효과로 그 존재가 간접 확인된다.",
+   tip:"보이지 않는 물질이 우주를 지배한다 / 암흑물질 검출 경쟁 현황"},
+  {name:"암흑 에너지",en:"Dark Energy",cat:"우주론",st:"유력",
+   desc:"우주 팽창을 가속시키는 미지의 에너지로, 우주 전체 에너지의 약 68%를 차지한다. 1998년 초신성 관측을 통해 발견되었으며 노벨물리학상을 수상했다.",
+   tip:"우주는 왜 점점 빠르게 팽창하는가? / 빅 립 시나리오"},
+  {name:"다중우주론",en:"Multiverse Theory",cat:"우주론",st:"가설",
+   desc:"우리 우주 외에 무한히 많은 우주가 존재한다는 이론. 급팽창의 영원한 인플레이션, 양자역학의 많은 세계 해석, 끈 이론의 경관(Landscape) 등이 근거로 제시된다.",
+   tip:"평행우주는 실재하는가? / 다중우주의 4가지 레벨 설명"},
+  {name:"끈 이론 / M-이론",en:"String Theory / M-Theory",cat:"물리학",st:"가설",
+   desc:"모든 입자가 점이 아닌 진동하는 1차원 끈으로 이루어져 있다는 이론. 11차원의 시공간을 요구하며, 중력과 양자역학을 통합하는 만물의 이론 후보다.",
+   tip:"11차원의 우주 / 끈 이론이 물리학을 어떻게 바꾸려 하는가"},
+  {name:"홀로그래픽 우주",en:"Holographic Universe",cat:"물리학",st:"가설",
+   desc:"우리가 경험하는 3차원 현실이 2차원 경계면에 기록된 정보의 투영일 수 있다는 이론. 후안 말다세나의 AdS/CFT 대응이 수학적 근거를 제공한다.",
+   tip:"우주는 거대한 홀로그램인가? / 블랙홀과 정보의 비밀"},
+  {name:"페르미 역설",en:"Fermi Paradox",cat:"천문학",st:"논쟁",
+   desc:"우주의 방대한 크기와 나이를 고려하면 외계 지적 생명체가 존재할 확률이 매우 높지만, 우리는 아직 아무런 신호도 받지 못했다는 역설. 1950년 엔리코 페르미가 제기했다.",
+   tip:"그들은 어디 있는가? / 페르미 역설의 30가지 해답들"},
+  {name:"위대한 필터",en:"Great Filter",cat:"천문학",st:"가설",
+   desc:"문명이 은하 간 기행이 가능한 단계로 발전하기 전에 반드시 넘어야 하는 거대한 장벽이 존재한다는 가설. 그 필터가 우리 앞에 있다면 인류의 미래는 암울하다.",
+   tip:"외계인이 없다는 것이 왜 나쁜 소식인가? / 위대한 필터 해설"},
+  {name:"범우주 생명 기원설",en:"Panspermia",cat:"천문학",st:"가설",
+   desc:"생명의 씨앗(유기분자, 미생물 등)이 소행성이나 혜성을 통해 우주를 여행하며 전파될 수 있다는 이론. 지구 생명이 우주에서 왔을 가능성을 시사한다.",
+   tip:"생명은 우주에서 왔는가? / 운석에서 발견된 유기분자들"},
+  {name:"시뮬레이션 가설",en:"Simulation Hypothesis",cat:"철학",st:"가설",
+   desc:"우리의 현실 전체가 고도로 발전된 문명이 실행하는 컴퓨터 시뮬레이션일 수 있다는 가설. 닉 보스트롬이 2003년 삼중 논리로 체계화했다.",
+   tip:"우리는 매트릭스 속에 살고 있는가? / 물리학자들의 반응"},
+  {name:"블랙홀 정보 역설",en:"Black Hole Information Paradox",cat:"물리학",st:"논쟁",
+   desc:"블랙홀이 증발(호킹 복사)할 때 그 안에 삼켜진 정보가 완전히 소멸하는지를 둘러싼 역설. 양자역학(정보 보존)과 일반 상대성 이론이 충돌한다.",
+   tip:"스티븐 호킹이 틀렸는가? / 50년간의 블랙홀 정보 전쟁"},
+  {name:"순환우주론",en:"Cyclic Universe",cat:"우주론",st:"가설",
+   desc:"우주가 빅뱅과 빅크런치(또는 빅 바운스)를 반복하며 영원히 순환한다는 이론. 폴 스타인하트와 닐 투록의 에크파이로틱 모델이 대표적이다.",
+   tip:"우주에는 시작이 없었을지도 모른다 / 빅 바운스 이론"},
+  {name:"양자 중력 이론",en:"Quantum Gravity",cat:"물리학",st:"논쟁",
+   desc:"일반 상대성 이론(중력)과 양자역학을 하나로 통합하려는 미완성 이론. 루프 양자 중력, 끈 이론 등이 후보이며, 현대 물리학 최대의 미해결 문제다.",
+   tip:"현대 물리학의 최후 난제 / 중력을 양자화한다는 것의 의미"},
+  {name:"웜홀 이론",en:"Wormhole / Einstein-Rosen Bridge",cat:"물리학",st:"가설",
+   desc:"아인슈타인-로젠 다리라고도 불리는 시공간의 지름길. 일반 상대성 이론 방정식에서 도출되며, 실제 통과 가능한 웜홀은 음의 에너지를 필요로 한다.",
+   tip:"시공간을 접는다는 것 / 인터스텔라의 웜홀은 현실적인가?"}
+];
+
+function renderTheories(){
+  document.getElementById('theoriesGrid').innerHTML=theories.map(t=>\`
+    <div class="t-card">
+      <div class="t-hdr">
+        <div>
+          <div class="t-name">\${t.name}</div>
+          <div class="t-en">\${t.en}</div>
+        </div>
+        <div class="badges">
+          <span class="badge b-cat">\${t.cat}</span>
+          <span class="badge b-\${t.st}">\${t.st}</span>
+        </div>
+      </div>
+      <div class="t-desc">\${t.desc}</div>
+      <div class="t-tip">
+        <div class="t-tip-lbl">💡 콘텐츠 아이디어</div>
+        \${t.tip}
+      </div>
+    </div>\`).join('');
+}
+renderTheories();
+</script>
+</body>
+</html>
