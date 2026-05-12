@@ -155,7 +155,7 @@ function drawBg() {
     const x=Math.random()*W, y=Math.random()*H, r=Math.random()*1.1+0.1;
     const op=Math.random()*0.55+0.08;
     ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle=\`rgba(255,248,225,\${op})\`; ctx.fill();
+    ctx.fillStyle=`rgba(255,248,225,${op})`; ctx.fill();
   }
 
   // Planet center (upper-right, partly offscreen)
@@ -322,24 +322,24 @@ const theories=[
 ];
 
 function renderTheories(){
-  document.getElementById('theoriesGrid').innerHTML=theories.map(t=>\`
+  document.getElementById('theoriesGrid').innerHTML=theories.map(t=>`
     <div class="t-card">
       <div class="t-hdr">
         <div>
-          <div class="t-name">\${t.name}</div>
-          <div class="t-en">\${t.en}</div>
+          <div class="t-name">${t.name}</div>
+          <div class="t-en">${t.en}</div>
         </div>
         <div class="badges">
-          <span class="badge b-cat">\${t.cat}</span>
-          <span class="badge b-\${t.st}">\${t.st}</span>
+          <span class="badge b-cat">${t.cat}</span>
+          <span class="badge b-${t.st}">${t.st}</span>
         </div>
       </div>
-      <div class="t-desc">\${t.desc}</div>
+      <div class="t-desc">${t.desc}</div>
       <div class="t-tip">
         <div class="t-tip-lbl">💡 콘텐츠 아이디어</div>
-        \${t.tip}
+        ${t.tip}
       </div>
-    </div>\`).join('');
+    </div>`).join('');
 }
 renderTheories();
 </script>
