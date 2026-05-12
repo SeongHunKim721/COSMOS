@@ -249,29 +249,32 @@ async function fetchNews(append = false){
   try{
     // 구글 뉴스 RSS를 사용하여 100% 자연스러운 한국어 우주 뉴스 기사를 원문 그대로 가져옵니다.
     const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent('우주 탐사 OR 우주 항공')}&hl=ko&gl=KR&ceid=KR:ko`;
-    // CORS 문제를 피하기 위해 allorigins 프록시 사용
-    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`);
+    // CORS 및 파싱 문제를 피하기 위해 rss2json API 사용 (매우 안정적)
+    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
     if(!res.ok) throw new Error('네트워크 응답에 문제가 있습니다.');
     const data = await res.json();
     
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-    const items = Array.from(xmlDoc.querySelectorAll("item"));
+    if(data.status !== 'ok') throw new Error('RSS 데이터 변환 실패');
+    const items = data.items || [];
     
     // 최대 제공되는 뉴스 수(약 100개) 내에서 8개씩 잘라서 무한 스크롤 구현
     const limit = 8;
     const paginatedItems = items.slice(newsOffset, newsOffset + limit);
     
     const news = paginatedItems.map(item => {
-      const title = item.querySelector("title")?.textContent || '';
-      const pubDateText = item.querySelector("pubDate")?.textContent;
+      const title = item.title || '';
+      const pubDateText = item.pubDate;
       const pubDate = pubDateText ? new Date(pubDateText) : new Date();
-      const link = item.querySelector("link")?.textContent || '';
-      const sourceNode = item.querySelector("source");
-      const source = sourceNode ? sourceNode.textContent : '뉴스 원문';
+      const link = item.link || '';
       
-      // 기사 제목 끝에 언론사 이름이 붙어있는 경우 제거
-      const cleanTitle = title.replace(new RegExp(` - ${source}$`), '');
+      // 구글 뉴스 RSS는 제목 끝에 " - 언론사명"이 붙어있음
+      let cleanTitle = title;
+      let source = '뉴스 원문';
+      const lastDashIdx = title.lastIndexOf(' - ');
+      if(lastDashIdx !== -1) {
+        cleanTitle = title.substring(0, lastDashIdx);
+        source = title.substring(lastDashIdx + 3);
+      }
       
       return {
         title: cleanTitle,
