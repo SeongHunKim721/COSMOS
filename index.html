@@ -233,29 +233,23 @@ async function fetchNews(){
   btn.disabled=true; loading.classList.add('show');
   list.innerHTML=''; err.classList.remove('show');
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:3000,
-        tools:[{type:'web_search_20250305',name:'web_search'}],
-        system:\`당신은 우주 뉴스 전문 큐레이터입니다. 웹 검색으로 최신 우주 뉴스를 찾고, 반드시 순수 JSON 배열만 반환하세요. 마크다운 블록 없이 JSON만 반환합니다.
-형식:
-[{"title":"한국어 제목","date":"YYYY-MM-DD","source":"출처","category":"탐사|천문학|우주기술|발사체|외계생명|블랙홀|태양계|위성 중 1","summary":"120자 내외 한국어 요약"}]\`,
-        messages:[{role:'user',content:\`오늘 날짜: \${today.toISOString().split('T')[0]}. NASA, SpaceX, ESA, JAXA 등 최신 우주 뉴스·우주기술 뉴스 8개를 웹 검색으로 찾아 JSON만 반환하세요.\`}]
-      })
-    });
+    const res=await fetch('https://api.spaceflightnewsapi.net/v4/articles/?limit=8');
+    if(!res.ok) throw new Error('네트워크 응답에 문제가 있습니다.');
     const data=await res.json();
-    let text='';
-    for(const b of data.content) if(b.type==='text') text+=b.text;
-    const clean=text.replace(/\`\`\`json|\`\`\`/g,'').trim();
-    const s=clean.indexOf('['), e=clean.lastIndexOf(']');
-    const news=JSON.parse(clean.slice(s,e+1));
+    
+    const news=data.results.map(article => ({
+      title: article.title,
+      date: new Date(article.published_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+      source: article.news_site,
+      category: '우주 뉴스',
+      summary: article.summary,
+      url: article.url
+    }));
+    
     renderNews(news);
   }catch(e){
     err.textContent='신호 수신 오류: '+e.message; err.classList.add('show');
-    list.innerHTML=\`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-txt">신호 수신 실패<br>잠시 후 다시 시도해주세요</div></div>\`;
+    list.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-txt">신호 수신 실패<br>잠시 후 다시 시도해주세요</div></div>`;
   }finally{
     loading.classList.remove('show'); btn.disabled=false;
   }
@@ -263,17 +257,19 @@ async function fetchNews(){
 
 function renderNews(news){
   const list=document.getElementById('newsList');
-  if(!news.length){list.innerHTML=\`<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">수신된 뉴스 없음</div></div>\`;return;}
-  list.innerHTML=news.map(n=>\`
-    <div class="news-card">
-      <div class="news-meta">
-        <span class="news-date">\${n.date||'날짜 미상'}</span>
-        \${n.source?\`<span class="news-src">\${n.source}</span>\`:''}
-        \${n.category?\`<span class="news-cat">\${n.category}</span>\`:''}
+  if(!news.length){list.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">수신된 뉴스 없음</div></div>`;return;}
+  list.innerHTML=news.map(n=>`
+    <a href="${n.url}" target="_blank" style="text-decoration:none; display:block;">
+      <div class="news-card">
+        <div class="news-meta">
+          <span class="news-date">${n.date||'날짜 미상'}</span>
+          ${n.source?`<span class="news-src">${n.source}</span>`:''}
+          ${n.category?`<span class="news-cat">${n.category}</span>`:''}
+        </div>
+        <div class="news-title">${n.title}</div>
+        <div class="news-sum">${n.summary}</div>
       </div>
-      <div class="news-title">\${n.title}</div>
-      <div class="news-sum">\${n.summary}</div>
-    </div>\`).join('');
+    </a>`).join('');
 }
 
 // ===== THEORIES =====
