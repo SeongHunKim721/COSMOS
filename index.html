@@ -224,41 +224,77 @@ function switchTab(tab){
   document.getElementById('theories').classList.toggle('active',tab==='theories');
 }
 
+// ===== TRANSLATION =====
+async function translateText(text) {
+  if(!text) return "";
+  try {
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&q=${encodeURIComponent(text)}`);
+    const data = await res.json();
+    return data[0].map(item => item[0]).join('');
+  } catch(e) {
+    return text;
+  }
+}
+
 // ===== NEWS =====
-async function fetchNews(){
+let newsOffset = 0;
+let isFetchingNews = false;
+
+async function fetchNews(append = false){
+  if(isFetchingNews) return;
+  isFetchingNews = true;
+  
   const btn=document.getElementById('fetchBtn');
   const loading=document.getElementById('loading');
   const list=document.getElementById('newsList');
   const err=document.getElementById('errMsg');
-  btn.disabled=true; loading.classList.add('show');
-  list.innerHTML=''; err.classList.remove('show');
+  
+  if(!append) {
+    newsOffset = 0;
+    list.innerHTML='';
+    btn.disabled=true;
+  }
+  
+  loading.classList.add('show');
+  err.classList.remove('show');
+  
   try{
-    const res=await fetch('https://api.spaceflightnewsapi.net/v4/articles/?limit=8');
+    const res=await fetch(`https://api.spaceflightnewsapi.net/v4/articles/?limit=8&offset=${newsOffset}`);
     if(!res.ok) throw new Error('네트워크 응답에 문제가 있습니다.');
     const data=await res.json();
     
-    const news=data.results.map(article => ({
-      title: article.title,
-      date: new Date(article.published_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-      source: article.news_site,
-      category: '우주 뉴스',
-      summary: article.summary,
-      url: article.url
+    const news = await Promise.all(data.results.map(async article => {
+      const [titleKo, summaryKo] = await Promise.all([
+        translateText(article.title),
+        translateText(article.summary)
+      ]);
+      return {
+        title: titleKo,
+        date: new Date(article.published_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+        source: article.news_site,
+        category: '우주 뉴스',
+        summary: summaryKo,
+        url: article.url
+      };
     }));
     
-    renderNews(news);
+    newsOffset += 8;
+    renderNews(news, append);
   }catch(e){
     err.textContent='신호 수신 오류: '+e.message; err.classList.add('show');
-    list.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-txt">신호 수신 실패<br>잠시 후 다시 시도해주세요</div></div>`;
+    if(!append) list.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-txt">신호 수신 실패<br>잠시 후 다시 시도해주세요</div></div>`;
   }finally{
-    loading.classList.remove('show'); btn.disabled=false;
+    loading.classList.remove('show'); 
+    btn.disabled=false;
+    isFetchingNews = false;
   }
 }
 
-function renderNews(news){
+function renderNews(news, append){
   const list=document.getElementById('newsList');
-  if(!news.length){list.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">수신된 뉴스 없음</div></div>`;return;}
-  list.innerHTML=news.map(n=>`
+  if(!append && !news.length){list.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">수신된 뉴스 없음</div></div>`;return;}
+  
+  const html = news.map(n=>`
     <a href="${n.url}" target="_blank" style="text-decoration:none; display:block;">
       <div class="news-card">
         <div class="news-meta">
@@ -270,6 +306,12 @@ function renderNews(news){
         <div class="news-sum">${n.summary}</div>
       </div>
     </a>`).join('');
+    
+  if(append) {
+    list.insertAdjacentHTML('beforeend', html);
+  } else {
+    list.innerHTML = html;
+  }
 }
 
 // ===== THEORIES =====
@@ -321,8 +363,16 @@ const theories=[
    tip:"시공간을 접는다는 것 / 인터스텔라의 웜홀은 현실적인가?"}
 ];
 
-function renderTheories(){
-  document.getElementById('theoriesGrid').innerHTML=theories.map(t=>`
+let theoryCount = 15;
+function renderTheories(append = false){
+  const grid = document.getElementById('theoriesGrid');
+  let html = '';
+  let startIdx = append ? theoryCount : 0;
+  let endIdx = append ? theoryCount + 6 : theoryCount;
+  
+  for(let i=startIdx; i<endIdx; i++) {
+    const t = theories[i % theories.length];
+    html += `
     <div class="t-card">
       <div class="t-hdr">
         <div>
@@ -339,9 +389,30 @@ function renderTheories(){
         <div class="t-tip-lbl">💡 콘텐츠 아이디어</div>
         ${t.tip}
       </div>
-    </div>`).join('');
+    </div>`;
+  }
+  
+  if(append) {
+    grid.insertAdjacentHTML('beforeend', html);
+    theoryCount = endIdx;
+  } else {
+    grid.innerHTML = html;
+  }
 }
 renderTheories();
+
+// ===== INFINITE SCROLL =====
+window.addEventListener('scroll', () => {
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+    if (document.getElementById('news').classList.contains('active')) {
+      if(!isFetchingNews && newsOffset > 0) {
+        fetchNews(true);
+      }
+    } else if (document.getElementById('theories').classList.contains('active')) {
+      renderTheories(true);
+    }
+  }
+});
 </script>
 </body>
 </html>
