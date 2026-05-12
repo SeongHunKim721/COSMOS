@@ -410,16 +410,21 @@ function renderTheories(append = false){
 renderTheories();
 
 // ===== INFINITE SCROLL =====
+let scrollThrottle = null;
 window.addEventListener('scroll', () => {
-  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
-    if (document.getElementById('news').classList.contains('active')) {
-      if(!isFetchingNews && newsOffset > 0) {
-        fetchNews(true);
+  if (scrollThrottle) return;
+  scrollThrottle = setTimeout(() => {
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+      if (document.getElementById('news').classList.contains('active')) {
+        if(!isFetchingNews && newsOffset > 0) {
+          fetchNews(true);
+        }
+      } else if (document.getElementById('theories').classList.contains('active')) {
+        renderTheories(true);
       }
-    } else if (document.getElementById('theories').classList.contains('active')) {
-      renderTheories(true);
     }
-  }
+    scrollThrottle = null;
+  }, 150); // 150ms 딜레이로 버벅거림 방지
 });
 </script>
 </body>
